@@ -131,14 +131,13 @@ async def generate_image_base64(prompt: str) -> str:
 
 
 async def start_video_job(prompt: str, image_base64: str) -> str:
-    url = f"{BASE_URL}/models/{VIDEO_MODEL}:predictLongRunning"
-    instance = {"prompt": prompt}
+    url = f"{BASE_URL}/models/{VIDEO_MODEL}:generateVideos"
+    payload = {"prompt": prompt}
     if image_base64:
-        instance["image"] = {
+        payload["image"] = {
             "imageBytes": strip_data_uri(image_base64),
             "mimeType": "image/png",
         }
-    payload = {"instances": [instance]}
     headers = {
         "x-goog-api-key": get_api_key(),
         "Content-Type": "application/json",
@@ -156,9 +155,9 @@ async def get_video_uri(operation_name: str) -> Optional[str]:
         resp = await client.get(url, headers=headers)
         resp.raise_for_status()
         data = resp.json()
-    if not data.get("done"): 
+    if not data.get("done"):
         return None
-    return data["response"]["generateVideoResponse"]["generatedSamples"][0]["video"]["uri"]
+    return data["response"]["generatedVideos"][0]["video"]["uri"]
 
 
 async def download_video(uri: str, target_path: Path) -> None:
