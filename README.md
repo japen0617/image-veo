@@ -7,7 +7,7 @@
 
 ## 功能簡介
 - 建築渲染圖生成（Render）
-- ��築工程圖生成（Engineering）
+- 建築工程圖生成（Engineering）
 - 影片生成（Video + 運鏡提示詞）
 - 即時提示詞預覽
 
