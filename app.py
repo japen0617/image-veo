@@ -135,7 +135,7 @@ async def generate_image_base64(prompt: str) -> str:
 
 async def start_video_job(prompt: str, image_base64: str) -> str:
     """
-    Use predictLongRunning with the image placed inside each instance as inlineData.
+    Use predictLongRunning with the image placed inside each instance as bytesBase64Encoded.
     Returns operation name.
     """
     url = f"{BASE_URL}/models/{VIDEO_MODEL}:predictLongRunning"
@@ -144,10 +144,8 @@ async def start_video_job(prompt: str, image_base64: str) -> str:
     instance = {"prompt": prompt}
     if image_base64:
         instance["image"] = {
-            "inlineData": {
-                "mimeType": "image/png",
-                "data": strip_data_uri(image_base64),
-            }
+            "bytesBase64Encoded": strip_data_uri(image_base64),
+            "mimeType": "image/png",
         }
 
     payload = {"instances": [instance]}
