@@ -262,7 +262,7 @@ async def create_video(payload: VideoRequest) -> VideoResponse:
     return VideoResponse(job_id=job_id, status="pending")
 
 
-@app.get("/api/video/{job_id}", response_model=VideoStatusResponse)
+@app.get("/api/video/{job_id:path}", response_model=VideoStatusResponse)
 async def get_video(job_id: str) -> VideoStatusResponse:
     uri = await get_video_uri(job_id)
     if uri is None:
