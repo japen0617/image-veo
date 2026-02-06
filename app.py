@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from pathlib import Path
 from typing import List, Optional
@@ -131,21 +132,55 @@ async def generate_image_base64(prompt: str) -> str:
 
 
 async def start_video_job(prompt: str, image_base64: str) -> str:
-    url = f"{BASE_URL}/models/{VIDEO_MODEL}:generateVideos"
-    payload = {"prompt": prompt}
+    """
+    Use predictLongRunning with instances + parameters.referenceImages as shown in official curl example.
+    Returns operation name.
+    """
+    url = f"{BASE_URL}/models/{VIDEO_MODEL}:predictLongRunning"
+
+    instance = {"prompt": prompt}
+    # if caller provided a base64 image, attach it as a reference image
+    parameters = {}
     if image_base64:
-        payload["image"] = {
-            "imageBytes": strip_data_uri(image_base64),
-            "mimeType": "image/png",
+        ref = {
+            "image": {"inlineData": {"mimeType": "image/png", "data": strip_data_uri(image_base64)}},
+            "referenceType": "asset",
         }
+        parameters["referenceImages"] = [ref]
+
+    payload = {"instances": [instance]}
+    if parameters:
+        payload["parameters"] = parameters
+
+    # Log payload for debugging (truncated)
+    try:
+        print("VIDEO REQUEST PAYLOAD:", json.dumps(payload)[:2000])
+    except Exception:
+        pass
+
     headers = {
         "x-goog-api-key": get_api_key(),
         "Content-Type": "application/json",
     }
+
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
-        return resp.json()["name"]
+        # log response for debugging
+        status = resp.status_code
+        try:
+            body_text = await resp.text()
+        except Exception:
+            body_text = str(resp.content)
+        print("VIDEO API STATUS:", status)
+        print("VIDEO API RESPONSE BODY:", (body_text or "")[:4000])
+
+        if status >= 400:
+            # return detailed error to caller for easier debugging
+            raise HTTPException(status_code=502, detail=f"Video API error {status}: {body_text}")
+
+        data = resp.json()
+        # predictLongRunning should return an operation name in 'name'
+        return data.get("name") or data.get("operation") or ""
 
 
 async def get_video_uri(operation_name: str) -> Optional[str]:
@@ -155,9 +190,40 @@ async def get_video_uri(operation_name: str) -> Optional[str]:
         resp = await client.get(url, headers=headers)
         resp.raise_for_status()
         data = resp.json()
+
+    # Operation formats may vary; check common locations for generated video URI
     if not data.get("done"):
         return None
-    return data["response"]["generatedVideos"][0]["video"]["uri"]
+
+    # 1) older predictLongRunning response shape
+    try:
+        return data["response"]["generateVideoResponse"]["generatedSamples"][0]["video"]["uri"]
+    except Exception:
+        pass
+
+    # 2) newer generateVideos response shape
+    try:
+        return data["response"]["generatedVideos"][0]["video"]["uri"]
+    except Exception:
+        pass
+
+    # 3) fallback: search tree for any 'uri' field
+    def find_uri(obj):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if k == "uri" and isinstance(v, str):
+                    return v
+                res = find_uri(v)
+                if res:
+                    return res
+        if isinstance(obj, list):
+            for item in obj:
+                res = find_uri(item)
+                if res:
+                    return res
+        return None
+
+    return find_uri(data)
 
 
 async def download_video(uri: str, target_path: Path) -> None:
