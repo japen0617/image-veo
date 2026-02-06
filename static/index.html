@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Architecture Visual Generator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 24px;
+        color: #1f2937;
+      }
+      h1 {
+        margin-bottom: 12px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      select,
+      input,
+      textarea,
+      button {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      textarea {
+        min-height: 72px;
+      }
+      .field {
+        margin-bottom: 12px;
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+      }
+      .preview pre {
+        background: #f3f4f6;
+        padding: 10px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+      }
+      .results img {
+        max-width: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        margin-bottom: 12px;
+      }
+      .status {
+        padding: 8px 0;
+        color: #2563eb;
+      }
+      video {
+        width: 100%;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+      }
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Architecture Visual Generator</h1>
+    <p>Generate a render + engineering drawing, then create a video with camera moves.</p>
+
+    <div class="layout">
+      <form id="generator-form">
+        <div class="field">
+          <label for="building_type">Building type</label>
+          <select id="building_type">
+            <option value="residential">Residential</option>
+            <option value="commercial">Commercial</option>
+            <option value="public" selected>Public</option>
+            <option value="industrial">Industrial</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="structure">Structure</label>
+          <select id="structure">
+            <option value="steel" selected>Steel</option>
+            <option value="reinforced concrete">Reinforced concrete</option>
+            <option value="wood">Wood</option>
+            <option value="hybrid">Hybrid</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="floors">Floors</label>
+          <input id="floors" type="number" min="1" max="50" value="3">
+        </div>
+        <div class="field">
+          <label for="materials">Materials (multi-select)</label>
+          <select id="materials" multiple size="5">
+            <option value="concrete">Concrete</option>
+            <option value="glass" selected>Glass</option>
+            <option value="metal" selected>Metal</option>
+            <option value="wood">Wood</option>
+            <option value="stone">Stone</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="facade_style">Facade style</label>
+          <select id="facade_style">
+            <option value="modern" selected>Modern</option>
+            <option value="neoclassical">Neoclassical</option>
+            <option value="minimal">Minimal</option>
+            <option value="industrial">Industrial</option>
+            <option value="organic curves">Organic curves</option>
+            <option value="high-tech">High-tech</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="roof">Roof</label>
+          <select id="roof">
+            <option value="flat" selected>Flat</option>
+            <option value="pitched">Pitched</option>
+            <option value="curved">Curved</option>
+            <option value="green">Green roof</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="windows">Windows</label>
+          <select id="windows">
+            <option value="floor-to-ceiling" selected>Floor-to-ceiling</option>
+            <option value="ribbon">Ribbon windows</option>
+            <option value="grille">Grille</option>
+            <option value="atrium">Atrium glazing</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="context">Context</label>
+          <select id="context">
+            <option value="urban" selected>Urban</option>
+            <option value="coastal">Coastal</option>
+            <option value="mountain">Mountain</option>
+            <option value="campus">Campus</option>
+            <option value="park">Park</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="lighting">Lighting</label>
+          <select id="lighting">
+            <option value="morning">Morning</option>
+            <option value="sunset" selected>Sunset</option>
+            <option value="night">Night</option>
+            <option value="soft indoor light">Soft indoor light</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="camera">Camera view</label>
+          <select id="camera">
+            <option value="low-angle" selected>Low-angle</option>
+            <option value="aerial">Aerial</option>
+            <option value="isometric">Isometric</option>
+            <option value="eye-level">Eye-level</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="style_refs">Style references</label>
+          <textarea id="style_refs" placeholder="Optional style references"></textarea>
+        </div>
+        <div class="field">
+          <label for="camera_moves">Camera moves (multi-select)</label>
+          <select id="camera_moves" multiple size="4">
+            <option value="Slow orbit around the building, 8 seconds, cinematic, stable." selected>
+              Slow orbit around the building
+            </option>
+            <option value="Dolly-in from wide shot to facade detail, 8 seconds.">
+              Dolly-in to facade
+            </option>
+            <option value="Crane down from aerial to ground level entrance, 8 seconds.">
+              Crane down to entrance
+            </option>
+            <option value="Side tracking shot along facade, 8 seconds.">
+              Side tracking along facade
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="extra_prompt">Video extra prompt</label>
+          <textarea id="extra_prompt" placeholder="e.g. ultra realistic, no people"></textarea>
+        </div>
+        <div class="actions">
+          <button type="button" id="generate-images">Generate images</button>
+          <button type="button" id="generate-video">Generate video</button>
+        </div>
+        <div class="status" id="status"></div>
+      </form>
+
+      <div class="preview">
+        <h3>Prompt preview</h3>
+        <strong>Render</strong>
+        <pre id="render-prompt"></pre>
+        <strong>Engineering</strong>
+        <pre id="engineering-prompt"></pre>
+        <strong>Video</strong>
+        <pre id="video-prompt"></pre>
+      </div>
+    </div>
+
+    <div class="results">
+      <h3>Results</h3>
+      <img id="render-image" alt="Render output">
+      <img id="engineering-image" alt="Engineering output">
+      <video id="video-output" controls></video>
+    </div>
+
+    <script>
+      const form = document.getElementById("generator-form");
+      const statusEl = document.getElementById("status");
+      const renderPromptEl = document.getElementById("render-prompt");
+      const engineeringPromptEl = document.getElementById("engineering-prompt");
+      const videoPromptEl = document.getElementById("video-prompt");
+      const renderImageEl = document.getElementById("render-image");
+      const engineeringImageEl = document.getElementById("engineering-image");
+      const videoEl = document.getElementById("video-output");
+      const generateImagesBtn = document.getElementById("generate-images");
+      const generateVideoBtn = document.getElementById("generate-video");
+
+      let latestRenderBase64 = "";
+
+      function getSelectedValues(selectEl) {
+        return Array.from(selectEl.selectedOptions).map((opt) => opt.value);
+      }
+
+      function getFormData() {
+        return {
+          building_type: document.getElementById("building_type").value,
+          structure: document.getElementById("structure").value,
+          floors: Number(document.getElementById("floors").value || 1),
+          materials: getSelectedValues(document.getElementById("materials")).join(", "),
+          facade_style: document.getElementById("facade_style").value,
+          roof: document.getElementById("roof").value,
+          windows: document.getElementById("windows").value,
+          context: document.getElementById("context").value,
+          lighting: document.getElementById("lighting").value,
+          camera: document.getElementById("camera").value,
+          style_refs: document.getElementById("style_refs").value.trim(),
+          camera_moves: getSelectedValues(document.getElementById("camera_moves")),
+          extra_prompt: document.getElementById("extra_prompt").value.trim(),
+        };
+      }
+
+      function buildRenderPrompt(data) {
+        let prompt = `A photorealistic architectural render of a ${data.facade_style} ${data.building_type}, ` +
+          `${data.floors} floors, ${data.structure} structure, primary materials ${data.materials}. ` +
+          `${data.roof} roof, ${data.windows} windows. Located in ${data.context}. ` +
+          `${data.lighting} with soft realistic shadows. ${data.camera} view. High detail, ` +
+          `PBR materials, clean composition, no people.`;
+        if (data.style_refs) {
+          prompt = `${prompt} Style references: ${data.style_refs}.`;
+        }
+        return prompt;
+      }
+
+      function buildEngineeringPrompt() {
+        return "An architectural technical drawing of the same building: orthographic elevation + floor plan, " +
+          "clean black linework on white background, labeled grid lines, minimal text, no shading, no people, " +
+          "CAD/blueprint style.";
+      }
+
+      function buildVideoPrompt(data) {
+        let prompt = data.camera_moves.join(" ");
+        if (data.extra_prompt) {
+          prompt = `${prompt} ${data.extra_prompt}`;
+        }
+        return prompt;
+      }
+
+      function updatePrompts() {
+        const data = getFormData();
+        renderPromptEl.textContent = buildRenderPrompt(data);
+        engineeringPromptEl.textContent = buildEngineeringPrompt();
+        videoPromptEl.textContent = buildVideoPrompt(data);
+      }
+
+      async function generateImages() {
+        statusEl.textContent = "Generating images...";
+        const data = getFormData();
+        const response = await fetch("/api/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+          statusEl.textContent = "Image generation failed.";
+          return;
+        }
+        const result = await response.json();
+        latestRenderBase64 = result.render.image_base64;
+        renderImageEl.src = `data:image/png;base64,${result.render.image_base64}`;
+        engineeringImageEl.src = `data:image/png;base64,${result.engineering.image_base64}`;
+        statusEl.textContent = "Images generated.";
+      }
+
+      async function generateVideo() {
+        if (!latestRenderBase64) {
+          statusEl.textContent = "Generate images first.";
+          return;
+        }
+        statusEl.textContent = "Starting video generation...";
+        const data = getFormData();
+        const response = await fetch("/api/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            render_image_base64: latestRenderBase64,
+            camera_moves: data.camera_moves,
+            extra_prompt: data.extra_prompt || null,
+          }),
+        });
+        if (!response.ok) {
+          statusEl.textContent = "Video request failed.";
+          return;
+        }
+        const job = await response.json();
+        await pollVideo(job.job_id);
+      }
+
+      async function pollVideo(jobId) {
+        statusEl.textContent = "Rendering video...";
+        let done = false;
+        while (!done) {
+          const response = await fetch(`/api/video/${encodeURIComponent(jobId)}`);
+          if (!response.ok) {
+            statusEl.textContent = "Video polling failed.";
+            return;
+          }
+          const result = await response.json();
+          if (result.status === "done" && result.video_url) {
+            videoEl.src = result.video_url;
+            statusEl.textContent = "Video ready.";
+            done = true;
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 10000));
+        }
+      }
+
+      form.addEventListener("input", updatePrompts);
+      generateImagesBtn.addEventListener("click", generateImages);
+      generateVideoBtn.addEventListener("click", generateVideo);
+      updatePrompts();
+    </script>
+  </body>
+</html>
