@@ -15,9 +15,9 @@ BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 IMAGE_MODEL = "gemini-3-pro-image-preview"
 VIDEO_MODEL = "veo-3.1-generate-preview"
 STATIC_DIR = Path("static")
-OUTPUT_DIR = Path("outputs")
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "/tmp/outputs"))
 
-OUTPUT_DIR.mkdir(exist_ok=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
@@ -156,7 +156,7 @@ async def get_video_uri(operation_name: str) -> Optional[str]:
         resp = await client.get(url, headers=headers)
         resp.raise_for_status()
         data = resp.json()
-    if not data.get("done"):
+    if not data.get("done"): 
         return None
     return data["response"]["generateVideoResponse"]["generatedSamples"][0]["video"]["uri"]
 
